@@ -12,7 +12,8 @@
     "axios": "^1.4.0",
     "core-js": "^3.8.3",
     "three": "^0.155.0",
-    "vue": "^3.2.13"
+    "vue": "^3.2.13",
+    "vue-meta": "^2.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",

@@ -7,9 +7,10 @@
 import { reactive, ref, onMounted, watchEffect } from "vue";
 import axios from 'axios';
 import * as THREE from 'three';
-// import { useWindowSize } from '@vueuse/core'
 import fish1 from '@/assets/sprites/fish1.png';
 import fish2 from '@/assets/sprites/fish2.png';
+
+
 axios.defaults.baseURL = 'https://api.openai.com/v1';
 axios.defaults.headers.common['Authorization'] = `Bearer ${process.env.VUE_APP_OPENAI_API_KEY}`;
 axios.defaults.headers.common['Content-Type'] = 'application/json';
@@ -300,6 +301,13 @@ async function callOpenAI(prompt) {
         return null;
     }
 }
+
+const props = withDefaults(defineProps(['title', 'meta']), {
+  title: 'Fillow and Pish — the Sarcastic Fish',
+  meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }]
+});
+
+return { ...props };
 </script>
 
 <style>
