@@ -1,26 +1,366 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <input v-if="!isJokeJoked" v-model="userInput" @keyup.enter="sendChat" maxlength="100" size="50" placeholder="Starter goes here...">
+    <button v-if="isJokeJoked" @click="resetChat" class="reset-btn">New joke</button>
 </template>
 
-<script>
-import HelloWorld from './components/HelloWorld.vue'
+<script setup>
+import { reactive, ref, onMounted, watchEffect } from "vue";
+import axios from 'axios';
+import * as THREE from 'three';
+// import { useWindowSize } from '@vueuse/core'
+import fish1 from '@/assets/sprites/fish1.png';
+import fish2 from '@/assets/sprites/fish2.png';
+axios.defaults.baseURL = 'https://api.openai.com/v1';
+axios.defaults.headers.common['Authorization'] = `Bearer ${process.env.VUE_APP_OPENAI_API_KEY}`;
+axios.defaults.headers.common['Content-Type'] = 'application/json';
 
-export default {
-  name: 'App',
-  components: {
-    HelloWorld
+const { Scene, PerspectiveCamera, WebGLRenderer, TextureLoader, } = THREE;
+
+const userInput = ref("");
+const gptResponse = ref("");
+const isJokeJoked = ref(false);
+
+const sceneSettings = reactive({
+  bgColor: "#071932" // dark blue
+});
+
+// useThreeJsChatScene(sceneSettings);
+
+function useThreeJsChatScene(settings) {
+  // const { width, height } = useWindowSize();
+  const scene = new Scene();
+  const camera = new PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10);
+  camera.position.z = 2;
+
+  const renderer = new WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(settings.bgColor);
+
+  const loader = new TextureLoader();
+  const clock = new THREE.Clock();
+  
+  // Load your fish textures/sprites
+  const userFishTexture = loader.load(fish1);
+  const gptFishTexture = loader.load(fish2);
+  userFishTexture.minFilter = THREE.LinearFilter;
+  userFishTexture.minFilter = THREE.LinearFilter;
+
+  const geometry = new THREE.PlaneGeometry(1, 1);
+  const userFishMaterial = new THREE.MeshLambertMaterial({
+    map: userFishTexture,
+    side: THREE.DoubleSide,
+    transparent: true
+});
+
+const gptFishMaterial = new THREE.MeshLambertMaterial({
+    map: gptFishTexture,
+    side: THREE.DoubleSide,
+    transparent: true
+});
+
+  const userFish = new THREE.Mesh(geometry, userFishMaterial);
+  const gptFish = new THREE.Mesh(geometry, gptFishMaterial);
+
+  scene.add(userFish, gptFish);
+  userFish.position.set(-1, 0, 0);  // position fish on the left
+  gptFish.position.set(1, 0, 0);   // position fish on the right
+
+  const userBubbleMaterial = new THREE.SpriteMaterial({
+    map: createTextTexture(''),  // Initially empty
+    transparent: true
+  });
+
+  const gptBubbleMaterial = new THREE.SpriteMaterial({
+    map: createTextTexture(''),  // Initially empty
+    transparent: true
+  });
+  const userBubble = new THREE.Sprite(userBubbleMaterial);
+  const gptBubble = new THREE.Sprite(gptBubbleMaterial);
+  userBubble.scale.set(2, 2, 1);  // Adjust as needed
+  gptBubble.scale.set(2, 2, 1);  // Adjust as needed
+
+  scene.add(userBubble, gptBubble);
+  userBubble.visible = false;  // Hide by default
+  gptBubble.visible = false;  // Hide by default
+
+  const bubbles = [];
+  const bubbleGeometry = new THREE.CircleGeometry(0.05, 32);  // small circle geometry
+  const bubbleMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, transparent: true, opacity: 0.8 });
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.25); // The color and intensity
+  scene.add(ambientLight);
+
+  const directionalLight = new THREE.DirectionalLight(0xffff00, 1); // The color and intensity
+  const targetObject = new THREE.Object3D();  // Create an empty object
+  scene.add(targetObject);  // Add it to the scene
+  directionalLight.position.set(0, 10, 5)
+  directionalLight.target = targetObject;
+  scene.add(directionalLight);
+
+  const helper = new THREE.DirectionalLightHelper(directionalLight, 5);
+  scene.add(helper);
+
+  const fogNear = 1.9; // Start of the fog in relation to the camera's position
+  const fogFar = 2.25;  // End of the fog where it's fully opaque
+  scene.fog = new THREE.Fog(settings.bgColor, fogNear, fogFar);
+
+  // Create a few bubbles
+  for (let i = 0; i < 5; i++) {
+    const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
+    bubble.position.set(
+      gptFish.position.x,
+      gptFish.position.y + (Math.random() - 0.5), // random y position around gptFish
+      gptFish.position.z + (Math.random() - 0.5)  // random z position around gptFish
+    );
+    bubbles.push(bubble);
+    scene.add(bubble);
   }
+  bubbles.forEach(bubble => bubble.visible = false);
+
+  function animate() {
+    const elapsedTime = clock.getElapsedTime();  // Get the time since the clock started
+
+    // Use sine wave to make fish float up and down over time.
+    // The numbers can be adjusted to change the speed and amplitude of the movement.
+    userFish.position.y = 0.1 * Math.sin(elapsedTime);
+    gptFish.position.y = 0.1 * Math.sin(elapsedTime + Math.PI/4);  // Adding offset so they don't move in sync
+
+    // Make the fish turn a bit.
+    userFish.rotation.z = 0.1*Math.sin(elapsedTime);
+    gptFish.rotation.z =  0.1*Math.sin(elapsedTime + Math.PI/4);
+    userFish.rotation.y = 0.25*(Math.sin(elapsedTime / 2) - 1);
+    gptFish.rotation.y =  0.25*(Math.sin(elapsedTime / 2) + 1); 
+
+    // const userFishYRotation = 0.5 * Math.sin(elapsedTime / 2);
+    // const gptFishYRotation = 0.5 * Math.sin(elapsedTime / 2);
+
+    // userFish.rotation.y = clamp(userFishYRotation, -Math.PI / 8, 0);  // Restrict rotation between -22.5 and 22.5 degrees
+    // gptFish.rotation.y = clamp(gptFishYRotation, -Math.PI / 8, Math.PI / 8);
+
+
+    bubbles.forEach(bubble => {
+      bubble.position.y += 0.01;  // adjust the speed as needed
+      if (bubble.position.y > gptFish.position.y + 1) {
+        bubble.position.y = gptFish.position.y;  // reset position when it goes too high
+      }
+    });
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
 }
+
+  onMounted(() => {
+    document.querySelector("#app").prepend(renderer.domElement);
+    clock.start();  // Start the clock
+    animate();
+  });
+  
+  watchEffect(() => {
+    // Update any reactive changes here. For instance, if fishes should change color or position.
+  });
+
+  async function sendChat() {
+    console.log('start')
+    isJokeJoked.value = true;
+    
+    // Show user's speech bubble
+    userBubble.material.map = createTextTexture(userInput.value);
+    userBubble.scale.set(userBubble.material.map.image.width / 500, userBubble.material.map.image.height / 500, 1);  // You can adjust the denominator for size
+    userBubble.position.set(-1, 1, 0);  // Above the user fish
+    userBubble.visible = true;
+    
+    // Show bubbles when waiting for a response
+    bubbles.forEach(bubble => bubble.visible = true);
+    const response = await promptAgent();
+
+    // Mocking a response from "GPT". Replace with actual OpenAI API call.
+    gptResponse.value = `${response.choices[0].message.content}`;
+
+    // Show GPT's speech bubble
+    gptBubble.material.map = createTextTexture(gptResponse.value);
+    gptBubble.scale.set(gptBubble.material.map.image.width / 500, gptBubble.material.map.image.height / 500, 1);  // You can adjust the denominator for size
+    gptBubble.position.set(1, 1, 0);  // Above the GPT fish
+    gptBubble.visible = true;
+    bubbles.forEach(bubble => bubble.visible = false);
+    userInput.value = ""; // Reset the user input
+  }
+
+  return { sendChat, userBubble, gptBubble };
+}
+
+const { sendChat, userBubble: userBubbleSprite, gptBubble: gptBubbleSprite } = useThreeJsChatScene(sceneSettings);
+
+function resetChat() {
+    // Clear the chat bubbles
+    userBubbleSprite.visible = false;  // Hide the user bubble
+    gptBubbleSprite.visible = false;   // Hide the GPT bubble
+
+    // Reset the isChatStarted flag
+    isJokeJoked.value = false;
+  }
+
+function createTextTexture(message) {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    const maxLineWidth = 500;  // Define a max width for each line
+    const lineHeight = 27;  // Line height, adjust as needed
+    context.font = '24px Arial';
+
+    // Breaks the message into multiple lines
+    let lines = [];
+    let words = message.split(" ");
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+        let word = words[i];
+        let width = context.measureText(currentLine + " " + word).width;
+        if (width < maxLineWidth) {
+            currentLine += " " + word;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+        }
+    }
+    lines.push(currentLine);
+
+    // Set canvas dimensions
+    canvas.width = maxLineWidth + 20;  // Some padding
+    canvas.height = lines.length * lineHeight + 20;  // Adjusted height based on number of lines
+
+    // Draw a white rounded rectangle for the bubble
+    context.fillStyle = '#FFFFFF';
+    context.strokeStyle = '#000000'; 
+    context.lineWidth = 3;  // Border thickness
+
+    roundRect(context, 0, 0, canvas.width, canvas.height, 20);
+    context.fill();
+    context.stroke();
+    
+    // Draw text in black
+    context.fillStyle = '#000000';
+    context.font = '24px Arial';
+    for (let i = 0; i < lines.length; i++) {
+        context.fillText(lines[i], 20, (i + 1) * lineHeight);  // Adjust position based on line index
+    }
+    
+    const texture = new THREE.Texture(canvas);
+    texture.needsUpdate = true;
+
+    return texture;
+}
+
+// Helper function to draw rounded rectangles
+function roundRect(context, x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    context.beginPath();
+    context.moveTo(x + r, y);
+    context.arcTo(x + w, y, x + w, y + h, r);
+    context.arcTo(x + w, y + h, x, y + h, r);
+    context.arcTo(x, y + h, x, y, r);
+    context.arcTo(x, y, x + w, y, r);
+    context.closePath();
+}
+
+async function promptAgent () {
+  // const opponent = (agent === this.agents.agent1) ? this.agents.agent2.name : this.agents.agent1.name
+  const prompt = {
+    model: 'gpt-4',
+    messages: [
+      { role: 'system', content: `Fillow and Pish is a hysterical satirical show, where two ironic and sharp-tongued fish discuss relevant topics in short postironic manner. They are neurotic, sarcastic and ironic. Continue the joke with one ore two short sentences. Fillow: ${userInput.value}` },
+      { role: 'user', content: `Pish: ` }
+    ],
+    max_tokens: 512,
+    user: 'Fillow-and-Pish'
+  }
+  // Call the OpenAI API with the constructed prompt
+  console.log('prompt: ', { ...prompt })
+  const response = await callOpenAI(prompt)
+
+  // Return the response
+  return response.data
+}
+
+async function callOpenAI(prompt) {
+    const apiUrl = '/chat/completions';
+    try {
+        const response = await axios.post(apiUrl, prompt);
+        console.log('response:', { ...response });
+        return response;
+    } catch (error) {
+        console.error('Error calling OpenAI API:', error);
+        return null;
+    }
+}
+
+// function clamp(value, min, max) {
+//   return Math.max(min, Math.min(value, max));
+// }
 </script>
 
 <style>
+
+body, html {
+  background: #321;
+  width: 100vw;
+  height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  font-size: 1.2rem;
+  font-family: Calibri, sans-serif;
+  text-shadow: 0 0 1px #111;
+  color: #ffe;
   text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  background-color: darkblue;
+  overflow: hidden;
+}
+
+canvas, .copy {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+input {
+  position: absolute;
+  bottom: 2em;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px;
+  font-size: 16px;
+}
+
+.reset-btn {
+  background-color: seagreen;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 16px;
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 100;
+  position: absolute;
+  bottom: 2em;
+}
+
+.reset-btn:hover {
+  transform: scale(1.05); /* Button enlarges slightly when hovered */
+  box-shadow: 2px 2px 12px rgba(0, 0, 0, 0.3); /* A more pronounced shadow when hovered */
+}
+
+.reset-btn:active {
+  transform: scale(1); /* Button returns to normal size when clicked */
+  box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2); /* Return to normal shadow when clicked */
 }
 </style>
