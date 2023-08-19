@@ -182,6 +182,16 @@ const gptFishMaterial = new THREE.MeshLambertMaterial({
     userInput.value = ""; // Reset the user input
   }
 
+  
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    renderer.setPixelRatio(window.devicePixelRatio);
+
   return { sendChat, userBubble, gptBubble };
 }
 
@@ -290,12 +300,6 @@ async function callOpenAI(prompt) {
         return null;
     }
 }
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
 </script>
 
 <style>
