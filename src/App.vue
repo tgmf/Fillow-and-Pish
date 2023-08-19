@@ -1,5 +1,5 @@
 <template>
-    <input v-if="!isJokeJoked" v-model="userInput" @keyup.enter="sendChat" maxlength="100" size="50" placeholder="Starter goes here...">
+    <input v-if="!isJokeJoked" v-model="userInput" @keyup.enter="sendChat" maxlength="100" size="50" placeholder="Your line goes here...">
     <button v-if="isJokeJoked" @click="resetChat" class="reset-btn">New joke</button>
 </template>
 
