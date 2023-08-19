@@ -97,9 +97,6 @@ const gptFishMaterial = new THREE.MeshLambertMaterial({
   directionalLight.target = targetObject;
   scene.add(directionalLight);
 
-  const helper = new THREE.DirectionalLightHelper(directionalLight, 5);
-  scene.add(helper);
-
   const fogNear = 1.9; // Start of the fog in relation to the camera's position
   const fogFar = 2.25;  // End of the fog where it's fully opaque
   scene.fog = new THREE.Fog(settings.bgColor, fogNear, fogFar);
@@ -128,8 +125,8 @@ const gptFishMaterial = new THREE.MeshLambertMaterial({
     // Make the fish turn a bit.
     userFish.rotation.z = 0.1*Math.sin(elapsedTime);
     gptFish.rotation.z =  0.1*Math.sin(elapsedTime + Math.PI/4);
-    userFish.rotation.y = 0.25*(Math.sin(elapsedTime / 2) - 1);
-    gptFish.rotation.y =  0.25*(Math.sin(elapsedTime / 2) + 1); 
+    userFish.rotation.y = 0.175*(Math.sin(elapsedTime / 2) - 1);
+    gptFish.rotation.y =  0.175*(Math.sin(elapsedTime / 2) + 1); 
 
     // const userFishYRotation = 0.5 * Math.sin(elapsedTime / 2);
     // const gptFishYRotation = 0.5 * Math.sin(elapsedTime / 2);
