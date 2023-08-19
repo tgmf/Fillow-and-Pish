@@ -4,12 +4,21 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, watchEffect } from "vue";
+import { reactive, ref, onMounted, watchEffect} from "vue";
+import { useHead } from '@vueuse/head';
 import axios from 'axios';
 import * as THREE from 'three';
 import fish1 from '@/assets/sprites/fish1.png';
 import fish2 from '@/assets/sprites/fish2.png';
 
+const title = ref('Fillow and Pish — the Sarcastic Fish');
+
+useHead({
+  title: title.value,
+  meta: [
+    { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+  ]
+});
 
 axios.defaults.baseURL = 'https://api.openai.com/v1';
 axios.defaults.headers.common['Authorization'] = `Bearer ${process.env.VUE_APP_OPENAI_API_KEY}`;
@@ -301,13 +310,6 @@ async function callOpenAI(prompt) {
         return null;
     }
 }
-
-const props = withDefaults(defineProps(['title', 'meta']), {
-  title: 'Fillow and Pish — the Sarcastic Fish',
-  meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }]
-});
-
-return { ...props };
 </script>
 
 <style>
