@@ -318,6 +318,7 @@ body, html {
   background: #321;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   padding: 0;
   margin: 0;
 }
@@ -325,6 +326,7 @@ body, html {
 #app {
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   position: relative;
   font-size: 1.2rem;
   font-family: Calibri, sans-serif;
@@ -341,6 +343,7 @@ canvas, .copy {
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
 }
 
 input {
