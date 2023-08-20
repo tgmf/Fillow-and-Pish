@@ -283,9 +283,9 @@ function roundRect(context, x, y, w, h, r) {
 async function promptAgent () {
   // const opponent = (agent === this.agents.agent1) ? this.agents.agent2.name : this.agents.agent1.name
   const prompt = {
-    model: 'gpt-4',
+    model: process.env.VUE_APP_MODEL,
     messages: [
-      { role: 'system', content: `Fillow and Pish is a hysterical satirical show, where two ironic and sharp-tongued fish discuss relevant topics in short postironic manner. They are neurotic, sarcastic and ironic. Continue the joke with one ore two short sentences. Fillow: ${userInput.value}` },
+      { role: process.env.VUE_APP_MODEL == 'gpt-4' ? 'system' : 'user', content: `Fillow and Pish is a hysterical satirical show, where two ironic and sharp-tongued fish discuss relevant topics in short postironic manner. They are neurotic, sarcastic and ironic. Continue the joke with one ore two short sentences. Fillow: ${userInput.value}` },
       { role: 'user', content: `Pish: ` }
     ],
     max_tokens: 512,
