@@ -10,6 +10,7 @@ import axios from 'axios';
 import * as THREE from 'three';
 import fish1 from '@/assets/sprites/fish1.png';
 import fish2 from '@/assets/sprites/fish2.png';
+import bg from '@/assets/bg.jpg';
 
 const title = ref('Fillow and Pish — the Sarcastic Fish');
 
@@ -55,18 +56,54 @@ function useThreeJsChatScene(settings) {
   userFishTexture.minFilter = THREE.LinearFilter;
   userFishTexture.minFilter = THREE.LinearFilter;
 
+  const bgGeometry = new THREE.PlaneGeometry(10, 5);  // Adjust size accordingly
+  const backgroundTexture = new THREE.TextureLoader().load(bg);
+  // const material = new THREE.MeshBasicMaterial({ map: backgroundTexture });
+
+  const vertexShader = `
+    varying vec2 vUv;
+
+    void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `;
+
+  const fragmentShader = `
+      uniform sampler2D bgTexture;
+      varying vec2 vUv;
+
+      void main() {
+          vec4 texColor = texture2D(bgTexture, vUv);
+          gl_FragColor = texColor;
+      }
+  `;
+
+  const backgroundMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+          bgTexture: { value: backgroundTexture }
+      },
+      vertexShader: vertexShader,
+      fragmentShader: fragmentShader,
+      side: THREE.DoubleSide
+  });
+
+  const plane = new THREE.Mesh(bgGeometry, backgroundMaterial);
+  plane.position.z = -1;  // Adjust position so it's behind the fish
+  scene.add(plane);
+
   const geometry = new THREE.PlaneGeometry(1, 1);
   const userFishMaterial = new THREE.MeshLambertMaterial({
     map: userFishTexture,
     side: THREE.DoubleSide,
     transparent: true
-});
+  });
 
-const gptFishMaterial = new THREE.MeshLambertMaterial({
+  const gptFishMaterial = new THREE.MeshLambertMaterial({
     map: gptFishTexture,
     side: THREE.DoubleSide,
     transparent: true
-});
+  });
 
   const userFish = new THREE.Mesh(geometry, userFishMaterial);
   const gptFish = new THREE.Mesh(geometry, gptFishMaterial);
@@ -107,7 +144,7 @@ const gptFishMaterial = new THREE.MeshLambertMaterial({
   directionalLight.target = targetObject;
   scene.add(directionalLight);
 
-  const fogNear = 1.9; // Start of the fog in relation to the camera's position
+  const fogNear = 2; // Start of the fog in relation to the camera's position
   const fogFar = 2.25;  // End of the fog where it's fully opaque
   scene.fog = new THREE.Fog(settings.bgColor, fogNear, fogFar);
 
@@ -115,14 +152,14 @@ const gptFishMaterial = new THREE.MeshLambertMaterial({
   for (let i = 0; i < 5; i++) {
     const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
     bubble.position.set(
-      gptFish.position.x,
+      gptFish.position.x - .15,
       gptFish.position.y + (Math.random() - 0.5), // random y position around gptFish
       gptFish.position.z + (Math.random() - 0.5)  // random z position around gptFish
     );
     bubbles.push(bubble);
     scene.add(bubble);
   }
-  bubbles.forEach(bubble => bubble.visible = false);
+  // bubbles.forEach(bubble => bubble.visible = false);
 
   function animate() {
     const elapsedTime = clock.getElapsedTime();  // Get the time since the clock started
@@ -137,13 +174,6 @@ const gptFishMaterial = new THREE.MeshLambertMaterial({
     gptFish.rotation.z =  0.1*Math.sin(elapsedTime + Math.PI/4);
     userFish.rotation.y = 0.175*(Math.sin(elapsedTime / 2) - 1);
     gptFish.rotation.y =  0.175*(Math.sin(elapsedTime / 2) + 1); 
-
-    // const userFishYRotation = 0.5 * Math.sin(elapsedTime / 2);
-    // const gptFishYRotation = 0.5 * Math.sin(elapsedTime / 2);
-
-    // userFish.rotation.y = clamp(userFishYRotation, -Math.PI / 8, 0);  // Restrict rotation between -22.5 and 22.5 degrees
-    // gptFish.rotation.y = clamp(gptFishYRotation, -Math.PI / 8, Math.PI / 8);
-
 
     bubbles.forEach(bubble => {
       bubble.position.y += 0.01;  // adjust the speed as needed
