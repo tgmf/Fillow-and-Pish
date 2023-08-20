@@ -152,14 +152,14 @@ function useThreeJsChatScene(settings) {
   for (let i = 0; i < 5; i++) {
     const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
     bubble.position.set(
-      gptFish.position.x - .15,
+      gptFish.position.x - .1,
       gptFish.position.y + (Math.random() - 0.5), // random y position around gptFish
       gptFish.position.z + (Math.random() - 0.5)  // random z position around gptFish
     );
     bubbles.push(bubble);
     scene.add(bubble);
   }
-  // bubbles.forEach(bubble => bubble.visible = false);
+  bubbles.forEach(bubble => bubble.visible = false);
 
   function animate() {
     const elapsedTime = clock.getElapsedTime();  // Get the time since the clock started
