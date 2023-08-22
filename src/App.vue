@@ -10,9 +10,19 @@ import axios from 'axios';
 import * as THREE from 'three';
 import fish1 from '@/assets/sprites/fish1.png';
 import fish2 from '@/assets/sprites/fish2.png';
-import bg from '@/assets/bg.jpg';
+import bg1 from '@/assets/bg1.jpg';
+import bg2 from '@/assets/bg2.jpg';
+import bg3 from '@/assets/bg3.jpg';
 
-const title = ref('Fillow and Pish — the Sarcastic Fish');
+const title = ref("Fillow and Pish — the Sarcastic Fish");
+const selectedBgURL = ref("");
+const backgroundTexture = ref(null);
+const userInput = ref("");
+const gptResponse = ref("");
+const isJokeJoked = ref(false);
+const sceneSettings = reactive({
+  bgColor: "#071932" // dark blue
+});
 
 useHead({
   title: title.value,
@@ -21,24 +31,49 @@ useHead({
   ]
 });
 
-axios.defaults.baseURL = 'https://api.openai.com/v1';
-axios.defaults.headers.common['Authorization'] = `Bearer ${process.env.VUE_APP_OPENAI_API_KEY}`;
-axios.defaults.headers.common['Content-Type'] = 'application/json';
+const openaiApi = axios.create({
+  baseURL: 'https://api.openai.com/v1',
+  headers: {
+    'Authorization': `Bearer ${process.env.VUE_APP_OPENAI_API_KEY}`,
+    'Content-Type': 'application/json'
+  }
+});
+
+// const unsplashApi = axios.create({
+//   baseURL: 'https://api.unsplash.com',
+//   headers: {
+//     'Authorization': `Client-ID ${process.env.VUE_APP_UNSPLASH_API_KEY}`,
+//     'Content-Type': 'application/json'
+//   }
+// });
 
 const { Scene, PerspectiveCamera, WebGLRenderer, TextureLoader, } = THREE;
 
-const userInput = ref("");
-const gptResponse = ref("");
-const isJokeJoked = ref(false);
+// const fetchRandomSeaBackground = async () => {
+//   try {
+//     const response = await unsplashApi.get('/photos/random', {
+//       params: {
+//         query: 'underwater abstract',
+//         orientation: 'landscape'
+//       }
+//     });
 
-const sceneSettings = reactive({
-  bgColor: "#071932" // dark blue
-});
+//     if (response && response.data && response.data.urls && response.data.urls.raw) {
+//       return response.data.urls.raw + '&q=50&w=1080';
+//     }
+//   } catch (error) {
+//     console.error("Error fetching random sea background:", error);
+//   }
 
-// useThreeJsChatScene(sceneSettings);
+//   const getRandomBackground = () => {
+//       const bgs = [bg1, bg2, bg3];
+//       return bgs[Math.floor(Math.random() * bgs.length)];
+//   }
+//   // If the API request fails, this line will return the local image
+//   return getRandomBackground();
+// };
 
 function useThreeJsChatScene(settings) {
-  // const { width, height } = useWindowSize();
   const scene = new Scene();
   const camera = new PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10);
   camera.position.z = 2;
@@ -56,9 +91,14 @@ function useThreeJsChatScene(settings) {
   userFishTexture.minFilter = THREE.LinearFilter;
   userFishTexture.minFilter = THREE.LinearFilter;
 
+  //Underwater background
+  const getRandomBackground = () => {
+      const bgs = [bg1, bg2, bg3];
+      return bgs[Math.floor(Math.random() * bgs.length)];
+  }
+  selectedBgURL.value = getRandomBackground();
   const bgGeometry = new THREE.PlaneGeometry(10, 5);  // Adjust size accordingly
-  const backgroundTexture = new THREE.TextureLoader().load(bg);
-  // const material = new THREE.MeshBasicMaterial({ map: backgroundTexture });
+  backgroundTexture.value = new THREE.TextureLoader().load(selectedBgURL.value);
 
   const vertexShader = `
     varying vec2 vUv;
@@ -81,7 +121,7 @@ function useThreeJsChatScene(settings) {
 
   const backgroundMaterial = new THREE.ShaderMaterial({
       uniforms: {
-          bgTexture: { value: backgroundTexture }
+          bgTexture: { value: backgroundTexture.value }
       },
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
@@ -184,9 +224,12 @@ function useThreeJsChatScene(settings) {
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
-}
+  }
 
-  onMounted(() => {
+  onMounted(async () => {
+    // selectedBgURL.value = await fetchRandomSeaBackground();
+    // backgroundTexture.value = new THREE.TextureLoader().load(selectedBgURL.value);
+    // backgroundMaterial.uniforms.bgTexture.value = backgroundTexture.value;
     document.querySelector("#app").prepend(renderer.domElement);
     clock.start();  // Start the clock
     animate();
@@ -224,13 +267,13 @@ function useThreeJsChatScene(settings) {
 
   
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 
-    renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setPixelRatio(window.devicePixelRatio);
 
   return { sendChat, userBubble, gptBubble };
 }
@@ -247,54 +290,54 @@ function resetChat() {
   }
 
 function createTextTexture(message) {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
 
-    const maxLineWidth = 500;  // Define a max width for each line
-    const lineHeight = 27;  // Line height, adjust as needed
-    context.font = '24px Arial';
+  const maxLineWidth = 600;  // Define a max width for each line
+  const lineHeight = 54;  // Line height, adjust as needed
+  context.font = '48px Arial';
 
-    // Breaks the message into multiple lines
-    let lines = [];
-    let words = message.split(" ");
-    let currentLine = words[0];
+  // Breaks the message into multiple lines
+  let lines = [];
+  let words = message.split(" ");
+  let currentLine = words[0];
 
-    for (let i = 1; i < words.length; i++) {
-        let word = words[i];
-        let width = context.measureText(currentLine + " " + word).width;
-        if (width < maxLineWidth) {
-            currentLine += " " + word;
-        } else {
-            lines.push(currentLine);
-            currentLine = word;
-        }
-    }
-    lines.push(currentLine);
+  for (let i = 1; i < words.length; i++) {
+      let word = words[i];
+      let width = context.measureText(currentLine + " " + word).width;
+      if (width < maxLineWidth) {
+          currentLine += " " + word;
+      } else {
+          lines.push(currentLine);
+          currentLine = word;
+      }
+  }
+  lines.push(currentLine);
 
-    // Set canvas dimensions
-    canvas.width = maxLineWidth + 20;  // Some padding
-    canvas.height = lines.length * lineHeight + 20;  // Adjusted height based on number of lines
+  // Set canvas dimensions
+  canvas.width = maxLineWidth + 60;  // Some padding
+  canvas.height = lines.length * lineHeight + 60;  // Adjusted height based on number of lines
 
-    // Draw a white rounded rectangle for the bubble
-    context.fillStyle = '#FFFFFF';
-    context.strokeStyle = '#000000'; 
-    context.lineWidth = 3;  // Border thickness
+  // Draw a white rounded rectangle for the bubble
+  context.fillStyle = '#FFFFFF';
+  context.strokeStyle = '#000000'; 
+  context.lineWidth = 3;  // Border thickness
 
-    roundRect(context, 0, 0, canvas.width, canvas.height, 20);
-    context.fill();
-    context.stroke();
-    
-    // Draw text in black
-    context.fillStyle = '#000000';
-    context.font = '24px Arial';
-    for (let i = 0; i < lines.length; i++) {
-        context.fillText(lines[i], 20, (i + 1) * lineHeight);  // Adjust position based on line index
-    }
-    
-    const texture = new THREE.Texture(canvas);
-    texture.needsUpdate = true;
+  roundRect(context, 0, 0, canvas.width, canvas.height, canvas.height);
+  context.fill();
+  context.stroke();
+  
+  // Draw text in black
+  context.fillStyle = '#000000';
+  context.font = '48px Arial';
+  for (let i = 0; i < lines.length; i++) {
+      context.fillText(lines[i], 60, (i + 1.4) * lineHeight);  // Adjust position based on line index
+  }
+  
+  const texture = new THREE.Texture(canvas);
+  texture.needsUpdate = true;
 
-    return texture;
+  return texture;
 }
 
 // Helper function to draw rounded rectangles
@@ -332,7 +375,7 @@ async function promptAgent () {
 async function callOpenAI(prompt) {
     const apiUrl = '/chat/completions';
     try {
-        const response = await axios.post(apiUrl, prompt);
+        const response = await openaiApi.post(apiUrl, prompt);
         console.log('response:', { ...response });
         return response;
     } catch (error) {
@@ -363,7 +406,7 @@ body, html {
   text-shadow: 0 0 1px #111;
   color: #ffe;
   text-align: center;
-  background-color: darkblue;
+  background-color: #071932;
   overflow: hidden;
 }
 
