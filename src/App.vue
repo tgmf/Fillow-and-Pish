@@ -1,6 +1,6 @@
 <template>
     <input v-if="!isJokeJoked" v-model="userInput" @keyup.enter="sendChat" maxlength="100" size="50" placeholder="Your line goes here...">
-    <button v-if="isJokeJoked" @click="resetChat" class="reset-btn">New joke</button>
+    <button v-if="isJokeJoked" @click="resetChat" class="reset-btn">Another one</button>
 </template>
 
 <script setup>
@@ -295,7 +295,7 @@ function createTextTexture(message) {
 
   const maxLineWidth = 600;  // Define a max width for each line
   const lineHeight = 54;  // Line height, adjust as needed
-  context.font = '48px Arial';
+  context.font = '48px Comic Sans MS';
 
   // Breaks the message into multiple lines
   let lines = [];
@@ -329,7 +329,7 @@ function createTextTexture(message) {
   
   // Draw text in black
   context.fillStyle = '#000000';
-  context.font = '48px Arial';
+  context.font = '48px Comic Sans MS';
   for (let i = 0; i < lines.length; i++) {
       context.fillText(lines[i], 60, (i + 1.4) * lineHeight);  // Adjust position based on line index
   }
@@ -429,8 +429,8 @@ input {
 }
 
 .reset-btn {
-  background-color: seagreen;
-  color: white;
+  background-color: white;
+  color: seagreen;
   border: none;
   border-radius: 20px;
   padding: 10px 20px;
